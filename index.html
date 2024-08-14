@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON to Table</title>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        img {
+            max-width: 50px;
+            max-height: 50px;
+        }
+        .copy-button {
+            margin-top: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 250px;
+            background-color: black;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 100%;
+            left: 50%;
+            margin-left: -100px;
+            font-size: 14px;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+        }
+        .main-stat {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+		.notification {
+            visibility: hidden;
+            min-width: 150px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 2px;
+            position: absolute;
+            z-index: 1;
+            font-size: 14px;
+            box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.2);
+            padding: 10px;
+            margin-top: 5px;
+        }
+        .notification.show {
+            visibility: visible;
+            -webkit-animation: fadein 0.5s, fadeout 0.5s 4.5s;
+            animation: fadein 0.5s, fadeout 0.5s 4.5s;
+        }
+        @-webkit-keyframes fadein {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @-webkit-keyframes fadeout {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        @keyframes fadein {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @keyframes fadeout {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Upload JSON File</h1>
+	<h3>How to get json file: <a href="https://github.com/fribbels/hsr-optimizer/discussions/403">https://github.com/fribbels/hsr-optimizer/discussions/403</a></h3>
+	<br />
+	<label for="uidInput">UID:</label>
+	<input type="text" id="uidInput" value="100001">
+	<div id="uidError" style="color: red; font-size: 12px; visibility: hidden;">Please enter a valid UID.</div>
+	<br />
+    <input type="file" id="fileInput">
+	<div id="fileError" style="color: red; font-size: 12px; visibility: hidden;">Please upload a valid JSON file.</div>
+    <button id="generateButton">Generate Script</button>
+    <table id="dataTable" style="display:none;">
+        <thead>
+            <tr>
+                <th>Character</th>
+                <th>Character Icon</th>
+                <th>Relic Name</th>
+                <th>Relic Icon</th>
+                <th>Generated Script</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+	
+	<!-- Notification Element -->
+    <div id="notification" class="notification"></div>
+	
+    <script>
+	
+		function showError(message) {
+			const fileError = document.getElementById('fileError');
+			fileError.textContent = message;
+			fileError.style.visibility = 'visible';
+		}
+        let jsonData;
+
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const fileError = document.getElementById('fileError');
+    
+				try {
+					jsonData = JSON.parse(e.target.result);
+
+					if (!jsonData.data || !jsonData.data.avatar_list) {
+						showError('Invalid JSON format. Please upload the correct JSON file.');
+						jsonData = null;
+						return;
+					}
+
+					// Hide the error if JSON is valid
+					fileError.style.visibility = 'hidden';
+
+				} catch (error) {
+					showError('Invalid JSON format. Please upload the correct JSON file.');
+					jsonData = null;
+				}
+            };
+
+            reader.readAsText(file);
+        });
+
+        document.getElementById('generateButton').addEventListener('click', function() {
+		
+			const uidInput = document.getElementById('uidInput');
+			const uidError = document.getElementById('uidError');
+			const uid = uidInput.value.trim();
+			
+			// Reset error visibility
+			uidError.style.visibility = 'hidden';
+
+			// Check if UID is a valid number
+			if (!/^\d+$/.test(uid)) {
+				uidError.textContent = 'Please enter a valid UID.';
+				uidError.style.visibility = 'visible';
+				return; // Stop execution if UID is not valid
+			}
+		
+            if (jsonData) {
+				generateTable(jsonData);
+			} else {
+				showError('Please upload a JSON file first.');
+			}
+        });
+
+        function generateTable(data) {
+            const table = document.getElementById('dataTable');
+            const tbody = table.querySelector('tbody');
+			
+            tbody.innerHTML = ''; // Clear previous content
+
+            const avatars = data.data.avatar_list;
+			const uid = document.getElementById('uidInput').value.trim();
+
+            avatars.forEach((avatar, index) => {
+                const relics = avatar.relics.concat(avatar.ornaments);
+								
+				const generatedScript = generateScript(relics);
+				
+				let characterScript = `/give @${uid} ${avatar.id} lv${avatar.level} e${avatar.rank} p6 s12\n`;
+				if (avatar.id === 8006)
+				{
+					characterScript = '';
+				}
+				let equipScript = '';
+				if (avatar.equip){
+					equipScript = `/give @${uid} ${avatar.equip.id} lv${avatar.equip.level} r${avatar.equip.rank}\n`;
+				}
+
+				const finalScript = characterScript + equipScript + generatedScript;
+				
+				const character = `${avatar.name} ${avatar.element}`;
+				const characterIcon = avatar.icon;
+				const relicNames = relics.map(relic => relic.name).join('<br>');
+				const relicIcons = relics.map(relic => `<div class="tooltip"><img src="${relic.icon}" alt="${relic.name}"><span class="tooltiptext">${generateTooltip(relic)}</span></div>`);
+				
+				// Generate tooltip text for character
+                const characterTooltip = generateCharacterTooltip(avatar);
+				
+				const row = `
+						<tr>
+							<td>${character}</td>
+							<td>
+								<div class="tooltip">
+									<img src="${characterIcon}" alt="${avatar.name}">
+									<span class="tooltiptext">${characterTooltip}</span>
+                            </div>
+							</td>
+							<td>${relicNames}</td>
+							<td>${relicIcons}</td>
+							<td>
+                            <div>${finalScript.replace(/\n/g, '<br>')}<br /></div>
+                            <button class="copy-btn" id="copyBtn${index}" onclick="copyToClipboard('copyBtn${index}', '${finalScript.replace(/\n/g, '\\n')}')">Copy</button>
+                        </td> 
+						</tr>
+					`;
+				tbody.innerHTML += row;
+            });
+
+            table.style.display = 'table';
+        }
+
+        function generateScript(relics) {
+			const uid = document.getElementById('uidInput').value.trim();
+            return relics.map(relic => {
+                const pos = relic.pos;
+                const relicId = relic.id;
+                const mainStat = pos >= 3 ? `s${mapMainStat(relic.main_property.property_type, pos)}` : '';
+                const subStats = relic.properties.map(prop => `${mapSubStat(prop.property_type)}:${prop.times}`).join(' ');
+				if (mainStat != '')
+				{
+					return `/give @${uid} ${relicId} ${mainStat} ${subStats} lv15\n`;
+				}
+                else
+					return `/give @${uid} ${relicId} ${subStats} lv15\n`;
+            }).join('');
+        }
+
+        function generateCharacterTooltip(avatar) {
+            const propertyMappings = {
+                1: 'Char HP',
+                2: 'Char ATK',
+                3: 'Char DEF',
+                4: 'Char SPD',
+                5: 'Char Crit Rate',
+                6: 'Char Crit DMG',
+                58: 'Char Break Effect',
+                7: 'Char Outgoing Healing Boost',
+                9: 'Char Energy Regeneration Rate',
+                10: 'Char Effect Hit Rate',
+                11: 'Char Effect RES',
+                12: 'Char Physical Damage',
+                14: 'Char Fire Damage',
+                16: 'Char Ice Damage',
+                18: 'Char Lightning Damage',
+                20: 'Char Wind Damage',
+                22: 'Char Quantum Damage',
+                24: 'Char Imaginary Damage'
+            };
+
+            const properties = avatar.properties || [];
+            const tooltipContent = properties.map(prop => {
+                const name = propertyMappings[prop.property_type] || '';
+                const value = prop.final || '';
+                return `<div style="display: flex; justify-content: space-between; font-size: 14px;">
+                            <span>${name}:</span>
+                            <span>${value}</span>
+                        </div>`;
+            }).join('');
+
+            return `<strong>Character Stats</strong><br>${tooltipContent}`;
+        }
+		
+        function mapMainStat(propertyType, pos) {
+            const mapping = {
+                3: { 32: 1, 33: 2, 34: 3, 52: 4, 53: 5, 55: 6, 56: 7 },
+                4: { 32: 1, 33: 2, 34: 3, 51: 4 },
+                5: { 32: 1, 33: 2, 34: 3, 12: 4, 14: 5, 16: 6, 18: 7, 20: 8, 22: 9, 24: 10 },
+                6: { 59: 1, 54: 2, 32: 3, 33: 4, 34: 5 }
+            };
+            return mapping[pos][propertyType] || '';
+        }
+
+        function mapSubStat(propertyType) {
+            const mapping = {
+                27: 1, 29: 2, 31: 3, 32: 4, 33: 5, 34: 6,
+                51: 7, 52: 8, 53: 9, 56: 10, 57: 11, 59: 12
+            };
+            return mapping[propertyType] || '';
+        }
+
+        function generateTooltip(relic) {
+            
+			let relicType = '';
+			const mapRelicType = {
+				1: 'Head',
+				2: 'Hands',
+				3: 'Body',
+				4: 'Shoes',
+				5: 'Link Rope',
+				6: 'Planar Sphere',
+			
+			};
+			relicType = mapRelicType[relic.pos]
+			let tooltip = `${relicType} +${relic.level}<br>`;
+            tooltip += `
+						<div class="main-stat" style="display: flex; justify-content: space-between; font-size: 14px;">
+								<span>${mapPropertyType(relic.main_property.property_type)}: </span>
+								<span>${relic.main_property.value}</span>
+						</div>
+						`;
+            relic.properties.forEach(prop => {
+                tooltip += `
+						<div style="display: flex; justify-content: space-between; font-size: 14px;">
+							<span>${mapPropertyType(prop.property_type)}: </span>
+							<span>${prop.value}</span>
+						</div>
+						`;
+            });
+            return tooltip;
+        }
+
+        function mapPropertyType(propertyType) {
+            const mapping = {
+                12: 'Physical Damage',
+                14: 'Fire Damage',
+                16: 'Ice Damage',
+                18: 'Lightning Damage',
+                20: 'Wind Damage',
+                22: 'Quantum Damage',
+                24: 'Imaginary Damage',
+                27: 'HP',
+                29: 'ATK',
+                31: 'DEF',
+                32: 'HP%',
+                33: 'ATK%',
+                34: 'DEF%',
+                51: 'Speed',
+                52: 'Crit Rate',
+                53: 'Crit Damage',
+                54: 'Energy Regeneration Rate',
+                55: 'Outgoing Healing',
+                56: 'Effect Hit Rate',
+                57: 'Effect RES',
+                59: 'Break Effect'
+            };
+            return mapping[propertyType] || 'Unknown Property';
+        }
+
+        function copyToClipboard(buttonId, text) {
+            const tempInput = document.createElement('textarea');
+            tempInput.style.position = 'absolute';
+            tempInput.style.left = '-9999px';
+            tempInput.value = text.replace(/\\n/g, '\n');
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+
+            // Show notification near the button
+            showNotification(buttonId, 'Copied to clipboard!');
+        }
+
+        function showNotification(buttonId, message) {
+            const notification = document.getElementById('notification');
+            const button = document.getElementById(buttonId);
+			
+			const rect = button.getBoundingClientRect();
+			
+            notification.textContent = message;
+
+            // Position the notification above the button
+            notification.style.top = `${rect.top + window.scrollY - 50}px`;
+			console.log(rect.top)
+            notification.style.left = `${rect.left + window.scrollX}px`;
+            notification.className = 'notification show';
+
+            // Hide notification after 2 seconds
+            setTimeout(() => {
+                notification.className = 'notification';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>
