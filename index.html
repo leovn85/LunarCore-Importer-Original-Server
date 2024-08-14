@@ -99,13 +99,52 @@
 	<h3>How to obtain json file: <a href="https://github.com/fribbels/hsr-optimizer/discussions/403">https://github.com/fribbels/hsr-optimizer/discussions/403</a></h3>
 	<h4>After completing step 5, copy the text, then paste it into a file and save it as 'yourfilename.json', with 'yourfilename' being any name you like.</h4>
 	<br />
-	<label for="uidInput">UID:</label>
-	<input type="text" id="uidInput" value="100001">
-	<div id="uidError" style="color: red; font-size: 12px; visibility: hidden;">Please enter a valid UID.</div>
+	<p>
+	<label for="nameInput">Account Name:</label>
+	<input type="text" id="nameInput" value="yourName">
 	<br />
+	</p>
+	<p>
+	<label for="uidInput">UID:</label>
+	<input type="text" id="uidInput" value="10001">
+	<div id="uidError" style="color: red; font-size: 12px; visibility: hidden;">Please enter a valid UID.</div>
+	</p>
     <input type="file" id="fileInput">
 	<div id="fileError" style="color: red; font-size: 12px; visibility: hidden;">Please upload a valid JSON file.</div>
     <button id="generateButton">Generate Script</button>
+	
+	<div id="setUpGuide" style="display:none;">
+    <p><strong>Set up script for your new account (If you already have an account, you can ignore these steps):</strong></p>
+    
+    <div style="margin-left: 20px;">
+        <p>Create a new account: (You can input any password when logging in)</p>
+        <p id="accountName" style="background-color: #f9f9f9; padding: 5px; border-radius: 5px;">
+            <strong>/account create test01</strong>
+        </p>
+        <p>Set your character's gender:</p>
+        <p id="genderScript01" style="background-color: #f9f9f9; padding: 5px; border-radius: 5px;">
+            <strong>/gender @10001 female</strong>
+        </p>
+		<span>or</span>
+        <p id="genderScript02" style="background-color: #f9f9f9; padding: 5px; border-radius: 5px;">
+            <strong>/gender @10001 male</strong>
+        </p>
+
+        <p>Set the level for your main character:</p>
+        <p id="levelScript" style="background-color: #f9f9f9; padding: 5px; border-radius: 5px;">
+            <strong>/setlevel @10001 70</strong>
+        </p>
+
+        <p>Give your main character full eidolons, skills, and ascension:</p>
+        <p id="avatarCurScript" style="background-color: #f9f9f9; padding: 5px; border-radius: 5px;">
+            <strong>/avatar @10001 cur lv80 p6 e6 s12</strong>
+        </p>
+    </div>
+
+    <p>After setup, you can copy the generated scripts from the table below, run them, and have all your characters, light cones, and relics configured like the original server.</p>
+</div>
+
+	
     <table id="dataTable" style="display:none;">
         <thead>
             <tr>
@@ -161,10 +200,21 @@
         });
 
         document.getElementById('generateButton').addEventListener('click', function() {
-		
+			
+			const nameInput = document.getElementById('nameInput');
 			const uidInput = document.getElementById('uidInput');
 			const uidError = document.getElementById('uidError');
+			const setUpGuide = document.getElementById('setUpGuide');
+
 			const uid = uidInput.value.trim();
+			const nameIn = nameInput.value.trim();
+			
+			document.getElementById("accountName").innerHTML = `<strong>/account create ${nameIn} ${uid}</strong>`;
+			document.getElementById("genderScript01").innerHTML = `<strong>/gender @${uid} female</strong>`;
+			document.getElementById("genderScript02").innerHTML = `<strong>/gender @${uid} male</strong>`;
+			document.getElementById("levelScript").innerHTML = `<strong>/setlevel @${uid} 70</strong>`;
+			document.getElementById("avatarCurScript").innerHTML = `<strong>/avatar @${uid} cur lv80 p6 e6 s12</strong>`;
+			
 			
 			// Reset error visibility
 			uidError.style.visibility = 'hidden';
@@ -177,6 +227,7 @@
 			}
 		
             if (jsonData) {
+				setUpGuide.style.display = 'block';
 				generateTable(jsonData);
 			} else {
 				showError('Please upload a JSON file first.');
