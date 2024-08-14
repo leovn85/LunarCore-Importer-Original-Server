@@ -99,52 +99,67 @@
 	<h3>How to obtain json file: <a href="https://github.com/fribbels/hsr-optimizer/discussions/403">https://github.com/fribbels/hsr-optimizer/discussions/403</a></h3>
 	<h4>After completing step 5, copy the text, then paste it into a file and save it as 'yourfilename.json', with 'yourfilename' being any name you like.</h4>
 	<br />
-	<p>
-	<label for="nameInput">Account Name:</label>
-	<input type="text" id="nameInput" value="yourName">
-	<br />
-	</p>
-	<p>
-	<label for="uidInput">UID:</label>
+	<label for="uidInput">UID: </label>
 	<input type="text" id="uidInput" value="10001">
+	<span>Note: Enter your UID, which can be found in the bottom left corner of the game. If this is your first time creating a server, just skip this UID thing.</span>
 	<div id="uidError" style="color: red; font-size: 12px; visibility: hidden;">Please enter a valid UID.</div>
-	</p>
+	<label for="fileInput">Upload your JSON file: </label>
     <input type="file" id="fileInput">
 	<div id="fileError" style="color: red; font-size: 12px; visibility: hidden;">Please upload a valid JSON file.</div>
-    <button id="generateButton">Generate Script</button>
-	
+    <button id="new" onclick="toggleGuide()">If this is your first time creating a server, please click here! If not, please click Generate Script button</button>
 	<div id="setUpGuide" style="display:none;">
-    <p><strong>Set up script for your new account (If you already have an account, you can ignore these steps):</strong></p>
+		<p><strong>Set up script for your new account (If you already have an account, you can ignore these steps):</strong></p>
     
-    <div style="margin-left: 20px;">
-        <p>Create a new account: (You can input any password when logging in)</p>
-        <p id="accountName" style="background-color: #f9f9f9; padding: 5px; border-radius: 5px;">
-            <strong>/account create test01</strong>
-        </p>
-        <p>Set your character's gender:</p>
-        <p id="genderScript01" style="background-color: #f9f9f9; padding: 5px; border-radius: 5px;">
-            <strong>/gender @10001 female</strong>
-        </p>
-		<span>or</span>
-        <p id="genderScript02" style="background-color: #f9f9f9; padding: 5px; border-radius: 5px;">
-            <strong>/gender @10001 male</strong>
-        </p>
+		<div style="margin-left: 20px;">
+			<p>Create a new account: (After creating, you can input any password to login)</p>
+			<div>
+				<span id="accountName" style="background-color: #f9f9f9; padding: 5px; border-radius: 5px;">
+					<strong>/account create accountName</strong>
+				</span>
+				<button onclick="copyToClipboardNewlyCreatedAccount('accountName')">Copy</button>
+			</div>
+			
+			<p>Set your character's gender: (optional)</p>
+			<div>
+				<span id="genderScript01" style="background-color: #f9f9f9; padding: 5px; border-radius: 5px;">
+					<strong>/gender @10001 female</strong>
+				</span>
+				<button onclick="copyToClipboardNewlyCreatedAccount('genderScript01')">Copy</button>
+			</div>
+			<span>or</span>
+			<div>
+				<span id="genderScript02" style="background-color: #f9f9f9; padding: 5px; border-radius: 5px;">
+					<strong>/gender @10001 male</strong>
+				</span>
+				<button onclick="copyToClipboardNewlyCreatedAccount('genderScript02')">Copy</button>
+			</div>
 
-        <p>Set the level for your main character:</p>
-        <p id="levelScript" style="background-color: #f9f9f9; padding: 5px; border-radius: 5px;">
-            <strong>/setlevel @10001 70</strong>
-        </p>
+			<p>Set the level for your main character:</p>
+			<div>
+				<span id="levelScript" style="background-color: #f9f9f9; padding: 5px; border-radius: 5px;">
+					<strong>/setlevel @10001 70</strong>
+				</span>
+				<button onclick="copyToClipboardNewlyCreatedAccount('levelScript')">Copy</button>
+			</div>
 
-        <p>Give your main character full eidolons, skills, and ascension:</p>
-        <p id="avatarCurScript" style="background-color: #f9f9f9; padding: 5px; border-radius: 5px;">
-            <strong>/avatar @10001 cur lv80 p6 e6 s12</strong>
-        </p>
-    </div>
+			<p>Give your main character full eidolons, skills, and ascension:</p>
+			<div>
+				<span id="avatarCurScript" style="background-color: #f9f9f9; padding: 5px; border-radius: 5px;">
+					<strong>/avatar @10001 cur lv80 p6 e6 s12</strong>
+				</span>
+				<button onclick="copyToClipboardNewlyCreatedAccount('avatarCurScript')">Copy</button>
+			</div>
+		</div>
 
-    <p>After setup, you can copy the generated scripts from the table below, run them, and have all your characters, light cones, and relics configured like the original server.</p>
-</div>
-
-	
+		<p>After setup, please press 'Generate Script' button and copy those generated scripts from the table, run and have all your characters, light cones, and relics configured like the original server.</p>
+	</div>
+	<p>
+	<button id="generateButton">Generate Script</button></p>
+	<div id="notes" style="display:none;">
+		<p>
+			<strong>Note:</strong> For relic stats, due to the randomness while upgrading, the final stats of relics may differ from the original server. However, they will remain close, with minor differences.
+		</p>
+	</div>
     <table id="dataTable" style="display:none;">
         <thead>
             <tr>
@@ -163,12 +178,45 @@
     <div id="notification" class="notification"></div>
 	
     <script>
+		function copyToClipboardNewlyCreatedAccount(elementId) {
+			var textToCopy = document.getElementById(elementId).innerText;
+			var tempInput = document.createElement("textarea");
+			tempInput.value = textToCopy;
+			document.body.appendChild(tempInput);
+			tempInput.select();
+			document.execCommand("copy");
+			document.body.removeChild(tempInput);
+		}
 	
+		function toggleGuide() {
+			var guide = document.getElementById("setUpGuide");
+			var buttonNew = document.getElementById("new");
+			if (guide.style.display === "none" || guide.style.display === "")
+			{
+				guide.style.display = "block";
+				buttonNew.textContent = "Hide";
+			} 
+			else 
+			{
+				guide.style.display = "none";
+				buttonNew.textContent = "If this is your first time creating a server, please click here!  If not, please click Generate Script button";
+			}
+			const uidInput = document.getElementById('uidInput');
+
+			const uid = uidInput.value.trim();
+			
+			document.getElementById("genderScript01").innerHTML = `<strong>/gender @${uid} female</strong>`;
+			document.getElementById("genderScript02").innerHTML = `<strong>/gender @${uid} male</strong>`;
+			document.getElementById("levelScript").innerHTML = `<strong>/setlevel @${uid} 70</strong>`;
+			document.getElementById("avatarCurScript").innerHTML = `<strong>/avatar @${uid} cur lv80 p6 e6 s12</strong>`;
+		}
+		
 		function showError(message) {
 			const fileError = document.getElementById('fileError');
 			fileError.textContent = message;
 			fileError.style.visibility = 'visible';
 		}
+		
         let jsonData;
 
         document.getElementById('fileInput').addEventListener('change', function(event) {
@@ -201,20 +249,11 @@
 
         document.getElementById('generateButton').addEventListener('click', function() {
 			
-			const nameInput = document.getElementById('nameInput');
 			const uidInput = document.getElementById('uidInput');
 			const uidError = document.getElementById('uidError');
-			const setUpGuide = document.getElementById('setUpGuide');
+			const notesSection = document.getElementById('notes');
 
 			const uid = uidInput.value.trim();
-			const nameIn = nameInput.value.trim();
-			
-			document.getElementById("accountName").innerHTML = `<strong>/account create ${nameIn} ${uid}</strong>`;
-			document.getElementById("genderScript01").innerHTML = `<strong>/gender @${uid} female</strong>`;
-			document.getElementById("genderScript02").innerHTML = `<strong>/gender @${uid} male</strong>`;
-			document.getElementById("levelScript").innerHTML = `<strong>/setlevel @${uid} 70</strong>`;
-			document.getElementById("avatarCurScript").innerHTML = `<strong>/avatar @${uid} cur lv80 p6 e6 s12</strong>`;
-			
 			
 			// Reset error visibility
 			uidError.style.visibility = 'hidden';
@@ -227,7 +266,7 @@
 			}
 		
             if (jsonData) {
-				setUpGuide.style.display = 'block';
+				notesSection.style.display = 'block'
 				generateTable(jsonData);
 			} else {
 				showError('Please upload a JSON file first.');
@@ -446,10 +485,10 @@
             notification.style.left = `${rect.left + window.scrollX}px`;
             notification.className = 'notification show';
 
-            // Hide notification after 2 seconds
+            // Hide notification after 1 seconds
             setTimeout(() => {
                 notification.className = 'notification';
-            }, 2000);
+            }, 1000);
         }
     </script>
 </body>
